@@ -1,0 +1,59 @@
+import snappy
+from snappy import ProductIO as product
+from snappy import HashMap as hash
+from snappy import GPF as gpf
+
+import os, sys
+
+gpf.getDefaultInstance().getOperatorSpiRegistry().loadOperatorSpis()
+snappy.HashMap = snappy.jpy.get_type('java.util.HashMap')
+
+path = "C:\\"
+
+for folder in os.listdir(path):
+
+    filename = folder + ".SAFE"
+
+    dataset = os.path.join(path, folder, filename)
+    dataset = dataset.format(sys.platform, os.sep)
+
+    timestamp = folder.split("_")[5]
+    date = timestamp[:8]
+
+    parameters = hash()
+    sources = hash()
+
+    pol = 'VV'
+
+    sentinel = product.readProduct(os.path.join(dataset, date + "_calibration_" + pol + ".tif"))
+
+    srtm = "C:\\dem.tif"
+
+    parameters.put('sourceBands', 'Sigma0_' + pol)
+    parameters.put('demResamplingMethod', 'BILINEAR_INTERPOLATION')
+    parameters.put('imgResamplingMethod', 'BILINEAR_INTERPOLATION')
+    parameters.put('demName', 'SRTM 1Sec HGT')
+    parameters.put('mapProjection', 'EPSG:32633')
+    parameters.put('nodataValueAtSea', True)
+    parameters.put('outputComplex', False)
+    parameters.put('saveSelectedSourceBand', True)
+    parameters.put('saveDEM', False)
+    parameters.put('saveLatLon', False)
+    parameters.put('saveIncidenceAngleFromEllipsoid', False)
+    parameters.put('saveLocalIncidenceAngle', False)
+    parameters.put('saveProjectedLocalIncidenceAngle', False)
+    parameters.put('applyRadiometricNormalization', False)
+
+    output = date + "_terrain_" + pol
+    checks = output + ".tif"
+
+    writefile = os.path.join(path, folder, filename, output)
+    checkfile = os.path.join(path, folder, filename, checks)
+
+    if os.path.exists(checkfile) == True:
+        pass
+
+    else:
+
+        item = gpf.createProduct("Terrain-Correction", parameters, sentinel)
+        product.writeProduct(item, writefile, 'GeoTIFF')
